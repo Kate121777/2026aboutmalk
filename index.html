@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>牛奶冒險：從牧場到餐桌</title>
+  <style>
+    :root{
+      --sky:#bfe8ff;
+      --grass:#b9e67e;
+      --deep-grass:#7fc45b;
+      --card:#ffffff;
+      --milk:#fffef8;
+      --blue:#5aa9ff;
+      --navy:#2d4d7a;
+      --yellow:#ffd95a;
+      --orange:#ffb54a;
+      --pink:#ff8fb1;
+      --red:#ff6b6b;
+      --brown:#885f3f;
+      --shadow:0 10px 25px rgba(0,0,0,.12);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;
+      background:linear-gradient(var(--sky) 0 58%, #e8f9ff 58% 100%);
+      color:#213547;
+      overflow-x:hidden;
+    }
+    #game{
+      width:min(1180px,96vw);
+      margin:18px auto 24px;
+      background:rgba(255,255,255,.75);
+      border:4px solid rgba(255,255,255,.7);
+      border-radius:28px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      min-height:760px;
+      position:relative;
+      backdrop-filter: blur(4px);
+    }
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      padding:14px 18px;
+      background:linear-gradient(90deg,#79c6ff,#8ce2ff);
+      color:#08315a;
+      border-bottom:3px solid rgba(255,255,255,.6);
+    }
+    .title{
+      font-size:clamp(22px,3.2vw,34px);
+      font-weight:900;
+      letter-spacing:.5px;
+    }
+    .hud{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .badge{
+      background:rgba(255,255,255,.8);
+      border:2px solid rgba(255,255,255,.75);
+      border-radius:999px;
+      padding:8px 14px;
+      font-weight:800;
+      font-size:15px;
+    }
+    .scene{
+      min-height:690px;
+      position:relative;
+      padding:22px 20px 90px;
+      background:
+        radial-gradient(circle at 15% 12%, rgba(255,255,255,.75) 0 50px, transparent 51px),
+        radial-gradient(circle at 24% 10%, rgba(255,255,255,.75) 0 38px, transparent 39px),
+        radial-gradient(circle at 30% 12%, rgba(255,255,255,.75) 0 45px, transparent 46px),
+        linear-gradient(#bfe8ff 0 58%, #b9e67e 58% 100%);
+    }
+    .ground-strip{
+      position:absolute;
+      left:0; right:0; bottom:0;
+      height:90px;
+      background:linear-gradient(#9fda67,#74bd4b);
+      border-top:4px solid rgba(255,255,255,.55);
+    }
+    .panel{
+      background:rgba(255,255,255,.88);
+      border:3px solid #fff;
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      padding:18px;
+    }
+    .dialog{
+      max-width:760px;
+      font-size:20px;
+      line-height:1.6;
+      margin:0 auto 18px;
+      text-align:center;
+      font-weight:700;
+    }
+    .subtext{
+      font-size:16px;
+      color:#47627e;
+      font-weight:700;
+      margin-top:8px;
+    }
+    .btns{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      justify-content:center;
+      margin-top:16px;
+    }
+    button{
+      border:none;
+      cursor:pointer;
+      border-radius:18px;
+      padding:14px 18px;
+      font-size:18px;
+      font-weight:900;
+      color:#17324d;
+      background:linear-gradient(#fff8be,#ffd95a);
+      box-shadow:0 6px 0 #d8b03c;
+      transition:transform .12s ease, filter .12s ease;
+    }
+    button:hover{ transform:translateY(-2px); filter:brightness(1.03); }
+    button:active{ transform:translateY(3px); box-shadow:0 3px 0 #d8b03c; }
+    .ghost-btn{
+      background:linear-gradient(#e9f8ff,#bfe8ff);
+      box-shadow:0 6px 0 #7ec2eb;
+    }
+    .map-wrap{
+      position:relative;
+      height:500px;
+      margin-top:12px;
+      border-radius:28px;
+      overflow:hidden;
+      box-shadow:var(--shadow);
+      background:
+        linear-gradient(#94d8ff 0 46%, #8cd163 46% 100%);
+      border:5px solid rgba(255,255,255,.7);
+    }
+    .path{
+      position:absolute;
+      left:18%;
+      top:57%;
+      width:66%;
+      height:24%;
+      border:20px solid #f1cf8d;
+      border-color:#f1cf8d transparent transparent transparent;
+      border-radius:55%/100%;
+      transform:rotate(-7deg);
+      opacity:.92;
+    }
+    .station{
+      position:absolute;
+      width:170px;
+      text-align:center;
+      user-select:none;
+    }
+    .station button{
+      width:100%;
+      padding:14px 10px;
+    }
+    .station .icon{
+      width:84px;height:84px;
+      margin:0 auto 8px;
+      border-radius:24px;
+      background:#fff;
+      display:grid;
+      place-items:center;
+      font-size:44px;
+      border:4px solid #fff;
+      box-shadow:var(--shadow);
+    }
+    .locked{ filter:grayscale(.95) opacity(.65); }
+    .farm{ left:8%; top:18%; }
+    .milkzone{ left:39%; top:13%; }
+    .factory{ right:11%; top:26%; }
+    .market{ left:55%; bottom:10%; }
+    .kid{
+      position:absolute;
+      left:42px;
+      bottom:32px;
+      width:120px;
+      height:210px;
+      animation:bob 1.8s infinite ease-in-out;
+    }
+    .kid .head{
+      width:80px;height:80px;border-radius:50%;
+      background:#ffd7b1;
+      margin:0 auto;
+      position:relative;
+      border:4px solid #2f3746;
+      z-index:2;
+    }
+    .kid .hair{
+      position:absolute; left:8px; top:-4px;
+      width:58px; height:34px;
+      background:#3a2b1f;
+      border-radius:26px 34px 18px 20px;
+    }
+    .kid .eye{position:absolute;top:34px;width:8px;height:12px;background:#2f3746;border-radius:50%;}
+    .kid .eye.left{left:21px}.kid .eye.right{right:21px}
+    .kid .smile{
+      position:absolute;left:50%;top:52px;transform:translateX(-50%);
+      width:24px;height:12px;border:3px solid #d16c7b;border-top:none;border-radius:0 0 20px 20px;
+    }
+    .kid .body{
+      width:86px;height:84px;background:#ffdd57;
+      border:4px solid #2f3746;border-radius:22px;
+      margin: -6px auto 0;
+      position:relative;
+    }
+    .kid .arm,.kid .leg{
+      position:absolute;background:#ffd7b1;border:4px solid #2f3746;border-radius:20px;
+    }
+    .kid .arm{width:18px;height:58px;top:10px;}
+    .kid .arm.left{left:-10px;transform:rotate(24deg)}
+    .kid .arm.right{right:-10px;transform:rotate(-24deg)}
+    .kid .leg{width:20px;height:72px;top:70px;background:#6aa4ff}
+    .kid .leg.left{left:16px}
+    .kid .leg.right{right:16px}
+    .kid .shoe{
+      position:absolute;bottom:-7px;width:34px;height:16px;background:#4e4e61;border-radius:18px;border:3px solid #2f3746;
+    }
+    .kid .shoe.left{left:8px}.kid .shoe.right{right:8px}
+
+    .scene-grid{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:18px;
+      align-items:start;
+      margin-top:12px;
+    }
+    .illustration{
+      min-height:430px;
+      position:relative;
+      overflow:hidden;
+      background:linear-gradient(#aee1ff 0 55%, #9ddd6e 55% 100%);
+    }
+    .speech{
+      position:absolute;
+      left:16px;top:16px;
+      max-width:320px;
+      background:#fff;
+      border:4px solid #fff;
+      border-radius:22px;
+      padding:12px 14px;
+      box-shadow:var(--shadow);
+      font-weight:800;
+      line-height:1.5;
+      z-index:4;
+    }
+    .speech::after{
+      content:"";
+      position:absolute; left:28px; bottom:-16px;
+      border:10px solid transparent;
+      border-top-color:#fff;
+    }
+    .quiz-card h2,.panel h2{
+      margin:0 0 10px;
+      color:#214b79;
+      font-size:30px;
+    }
+    .quiz-card p{font-size:18px;line-height:1.7;margin:10px 0}
+    .answers{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+      margin-top:14px;
+    }
+    .answer{
+      text-align:left;
+      background:linear-gradient(#ffffff,#f7fbff);
+      box-shadow:0 6px 0 #d6e6f5;
+      border:2px solid #dceeff;
+    }
+    .feedback{
+      min-height:36px;
+      font-size:18px;
+      font-weight:900;
+      margin-top:14px;
+    }
+    .ok{ color:#1f9a4a; }
+    .bad{ color:#d65151; }
+
+    /* Farm */
+    .sun{
+      position:absolute; right:34px; top:24px;
+      width:90px;height:90px;border-radius:50%;
+      background:radial-gradient(circle at 35% 35%, #fff7be 0 15%, #ffd95a 16% 70%, #ffc52f 71%);
+      box-shadow:0 0 0 14px rgba(255,217,90,.25);
+    }
+    .barn{
+      position:absolute; left:42px; bottom:88px;
+      width:210px; height:170px;
+      background:#cf5a4b;
+      border-radius:18px;
+      border:4px solid #81392f;
+    }
+    .barn::before{
+      content:"";
+      position:absolute; left:-14px; top:-70px;
+      width:0;height:0;
+      border-left:119px solid transparent;
+      border-right:119px solid transparent;
+      border-bottom:76px solid #8a3f36;
+    }
+    .barn-door{
+      position:absolute; left:72px; bottom:0;
+      width:68px;height:90px;background:#6c402c;border:4px solid #5a311f;border-radius:16px 16px 0 0;
+    }
+    .cow{
+      position:absolute;
+      width:140px;height:92px;
+    }
+    .cow .body{
+      position:absolute;left:22px;top:14px;width:98px;height:58px;background:#fff;border:4px solid #333;border-radius:30px;
+    }
+    .cow .spot{
+      position:absolute;background:#2b2b2b;border-radius:40px;
+    }
+    .cow .spot.a{width:28px;height:20px;left:42px;top:28px}
+    .cow .spot.b{width:18px;height:24px;left:86px;top:38px}
+    .cow .head{
+      position:absolute;left:0;top:20px;width:42px;height:36px;background:#fff;border:4px solid #333;border-radius:18px;
+    }
+    .cow .nose{
+      position:absolute;left:6px;bottom:-7px;width:24px;height:14px;background:#ffb7c7;border:3px solid #333;border-radius:10px;
+    }
+    .cow .ear{position:absolute;top:4px;width:12px;height:14px;background:#fff;border:3px solid #333;border-radius:10px}
+    .cow .ear.l{left:-4px}.cow .ear.r{right:-4px}
+    .cow .leg{
+      position:absolute;bottom:0;width:10px;height:28px;background:#fff;border:3px solid #333;border-radius:8px;
+    }
+    .cow .leg.l1{left:38px}.cow .leg.l2{left:58px}.cow .leg.r1{left:88px}.cow .leg.r2{left:108px}
+    .cow .tail{
+      position:absolute;right:8px;top:20px;width:28px;height:8px;border-top:4px solid #333;border-radius:50%;transform:rotate(24deg);
+    }
+
+    /* Milking */
+    .milking-yard{
+      position:relative;
+      height:430px;
+      overflow:hidden;
+      background:linear-gradient(#b3e4ff 0 55%, #8dd66b 55% 100%);
+      border-radius:22px;
+    }
+    .robot{
+      position:absolute; right:70px; bottom:78px;
+      width:210px; height:200px;
+      background:linear-gradient(#cfd7e6,#aab7cf);
+      border:5px solid #5d708f;
+      border-radius:24px;
+      box-shadow:var(--shadow);
+    }
+    .robot .screen{
+      position:absolute;left:22px;top:18px;width:92px;height:62px;border-radius:16px;background:#72d6ff;border:4px solid #48617f;
+      display:grid;place-items:center;font-size:30px;
+    }
+    .robot .door{
+      position:absolute;right:16px;bottom:16px;width:110px;height:118px;border:4px dashed #48617f;border-radius:18px;background:rgba(255,255,255,.35)
+    }
+    .robot .arm{
+      position:absolute;left:-40px;top:88px;width:60px;height:16px;background:#8798b4;border:4px solid #4f6380;border-radius:14px;transform-origin:right center;animation:armMove 1.2s infinite alternate ease-in-out;
+    }
+    .robot .tube{
+      position:absolute;left:12px;top:112px;width:70px;height:70px;border-left:6px solid #4f6380;border-bottom:6px solid #4f6380;border-radius:0 0 0 40px;
+    }
+    .queue-line{
+      position:absolute;left:10px;right:10px;bottom:90px;height:2px;border-top:4px dashed rgba(70,95,55,.45);
+    }
+    .moving-cow{
+      position:absolute;
+      bottom:90px;
+      animation:queueCow 8s linear infinite;
+    }
+    .moving-cow.delay1{animation-delay:2s}
+    .moving-cow.delay2{animation-delay:4s}
+    .moving-cow.delay3{animation-delay:6s}
+    .bucket{
+      position:absolute; right:22px; bottom:30px;
+      width:74px;height:58px;border-radius:0 0 18px 18px;background:linear-gradient(#d8e1ef,#a9b7cf);border:4px solid #536781;
+    }
+    .bucket::before{
+      content:"";
+      position:absolute;left:10px;right:10px;top:9px;height:18px;background:#fff;border-radius:10px;
+    }
+    .truck{
+      position:absolute; left:18px; bottom:26px;
+      width:220px; height:96px;
+      animation:truckGo 4.5s infinite linear;
+    }
+    .truck .cab{
+      position:absolute;left:0;bottom:24px;width:64px;height:48px;background:#57a7ff;border:4px solid #2b5d95;border-radius:16px 10px 10px 12px;
+    }
+    .truck .box{
+      position:absolute;left:54px;bottom:24px;width:132px;height:58px;background:#fff;border:4px solid #5577a0;border-radius:16px;
+      display:grid;place-items:center;font-weight:900;
+      overflow:hidden;
+    }
+    .truck .box .truck-label{
+      display:inline-block;
+      transform:scaleX(-1);
+    }
+    .truck .wheel{
+      position:absolute;bottom:0;width:36px;height:36px;border-radius:50%;background:#333;border:5px solid #8a8f99;
+    }
+    .truck .w1{left:24px}.truck .w2{left:132px}
+
+    /* Factory choices */
+    .truck-grid{
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:12px;
+      margin-top:14px;
+    }
+    .drink-truck{
+      padding:10px 8px 14px;
+      border-radius:22px;
+      border:3px solid #fff;
+      background:linear-gradient(#fff,#edf8ff);
+      box-shadow:var(--shadow);
+      text-align:center;
+    }
+    .truck-icon{
+      position:relative;
+      width:100%;
+      height:94px;
+      margin:0 auto 10px;
+    }
+    .truck-body{
+      position:absolute;left:8px;right:18px;bottom:20px;height:44px;background:#8cd3ff;border:4px solid #44739b;border-radius:14px;
+      display:grid;place-items:center;font-size:15px;font-weight:900;
+    }
+    .truck-front{
+      position:absolute;right:2px;bottom:20px;width:30px;height:34px;background:#5fb0ff;border:4px solid #44739b;border-radius:12px 10px 10px 10px;
+    }
+    .truck-wheel{
+      position:absolute;bottom:0;width:24px;height:24px;border-radius:50%;background:#333;border:4px solid #7d858f;
+    }
+    .truck-wheel.left{left:18px}.truck-wheel.right{right:22px}
+
+    /* Market */
+    .market-scene{
+      position:relative;
+      height:430px;
+      overflow:hidden;
+      background:linear-gradient(#d0efff 0 22%, #f6f3e8 22% 100%);
+      border-radius:22px;
+    }
+    .store-sign{
+      position:absolute;left:50%;top:18px;transform:translateX(-50%);
+      background:linear-gradient(#fffdf0,#ffd95a);
+      border:4px solid #ffffff;
+      padding:10px 20px;
+      border-radius:18px;
+      font-size:28px;
+      font-weight:900;
+      box-shadow:var(--shadow);
+    }
+    .shelf{
+      position:absolute;left:36px;right:36px;top:120px;height:18px;background:#d1a86c;border-radius:8px;box-shadow:0 90px 0 #d1a86c;
+    }
+    .worker{
+      position:absolute;left:36px;bottom:30px;width:126px;height:220px;
+    }
+    .worker .head{width:74px;height:74px;background:#ffd7b1;border-radius:50%;border:4px solid #2f3746;margin:0 auto}
+    .worker .cap{position:absolute;left:30px;top:2px;width:62px;height:24px;background:#6ad4ff;border:4px solid #2f3746;border-radius:20px 20px 8px 8px}
+    .worker .body{width:96px;height:92px;background:#7bd8ff;border:4px solid #2f3746;border-radius:20px;margin:-4px auto 0}
+    .worker .leg{position:absolute;top:154px;width:20px;height:58px;background:#394e68;border-radius:12px;border:4px solid #2f3746}
+    .worker .leg.l{left:38px}.worker .leg.r{right:38px}
+    .worker .arm{position:absolute;top:100px;width:18px;height:58px;background:#ffd7b1;border-radius:12px;border:4px solid #2f3746}
+    .worker .arm.l{left:10px;transform:rotate(18deg)} .worker .arm.r{right:10px;transform:rotate(-22deg)}
+    .bottle-row{
+      position:absolute;left:190px;right:38px;top:66px;
+      display:flex;justify-content:space-around;gap:20px;
+    }
+    .milk-bottle{
+      width:120px;
+      cursor:pointer;
+      transition:transform .15s ease;
+      user-select:none;
+    }
+    .milk-bottle:hover{ transform:translateY(-6px); }
+    .bottle-shape{
+      width:82px;height:146px;margin:0 auto;
+      background:linear-gradient(#ffffff,#f7fbff);
+      border:4px solid #98bfd8;
+      border-radius:28px 28px 22px 22px;
+      position:relative;
+      box-shadow:var(--shadow);
+    }
+    .bottle-shape::before{
+      content:"";
+      position:absolute;left:22px;top:-22px;width:36px;height:24px;background:#7bc8ff;border:4px solid #5a86a5;border-bottom:none;border-radius:12px 12px 0 0;
+    }
+    .label{
+      position:absolute;left:8px;right:8px;top:48px;
+      padding:8px 6px;border-radius:16px;background:#fff4a3;border:3px solid #ffde68;
+      font-size:16px;font-weight:900;text-align:center;
+    }
+    .fat{
+      background:#fff1a9;border-color:#ffd95a;
+    }
+    .lowfat{
+      background:#d8f0ff;border-color:#8fcfff;
+    }
+
+    .stars{
+      display:flex;justify-content:center;gap:10px;font-size:34px;
+      animation: sparkle 1s infinite alternate;
+      margin-top:8px;
+    }
+
+    .footer-controls{
+      position:absolute;
+      left:0;right:0;bottom:18px;
+      display:flex;justify-content:center;gap:10px;flex-wrap:wrap;
+      z-index:6;
+    }
+
+    @keyframes bob{
+      0%,100%{transform:translateY(0)}
+      50%{transform:translateY(-8px)}
+    }
+    @keyframes queueCow{
+      0%{ left:-180px; opacity:0; transform:scaleX(-1) scale(.88); }
+      8%{ opacity:1; transform:scaleX(-1) scale(.88); }
+      65%{ left:120px; opacity:1; transform:scaleX(-1) scale(.88); }
+      86%{ left:220px; opacity:.95; transform:scaleX(-1) scale(.84);}
+      100%{ left:320px; opacity:0; transform:scaleX(-1) scale(.76);}
+    }
+    @keyframes armMove{
+      from{ transform:rotate(-12deg); }
+      to{ transform:rotate(18deg); }
+    }
+    @keyframes truckGo{
+      0%{ transform:translateX(0) scaleX(-1); opacity:.2; }
+      15%{ transform:translateX(0) scaleX(-1); opacity:1; }
+      78%{ transform:translateX(0) scaleX(-1); opacity:1; }
+      100%{ transform:translateX(880px) scaleX(-1); opacity:0; }
+    }
+    @keyframes sparkle{
+      from{ transform:translateY(0) scale(1); }
+      to{ transform:translateY(-5px) scale(1.08); }
+    }
+
+    @media (max-width: 980px){
+      .scene-grid{grid-template-columns:1fr}
+      .truck-grid{grid-template-columns:1fr 1fr}
+      .bottle-row{position:static; padding:96px 18px 0; flex-wrap:wrap;}
+      .worker{display:none}
+      .kid{transform:scale(.85); transform-origin:left bottom}
+    }
+    @media (max-width: 720px){
+      .station{width:130px}
+      .station .icon{width:68px;height:68px;font-size:34px}
+      .map-wrap{height:560px}
+      .market{left:50%;bottom:5%}
+      .truck-grid{grid-template-columns:1fr}
+      .bottle-row{padding-top:110px}
+      .milk-bottle{width:100px}
+      .bottle-shape{width:72px;height:130px}
+      .dialog{font-size:18px}
+    }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <script>
+    const state = {
+      completed: {
+        farm: false,
+        milkzone: false,
+        factory: false,
+        market: false
+      }
+    };
+
+    function app(html){
+      document.getElementById("game").innerHTML = html;
+    }
+
+    function hud(){
+      const done = Object.values(state.completed).filter(Boolean).length;
+      return `
+        <div class="topbar">
+          <div class="title">🥛 牛奶冒險：從牧場到餐桌</div>
+          <div class="hud">
+            <div class="badge">進度：${done}/4</div>
+            <div class="badge">任務：找到想要的鮮乳</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function kidFigure(){
+      return `
+      <div class="kid">
+        <div class="head">
+          <div class="hair"></div>
+          <div class="eye left"></div>
+          <div class="eye right"></div>
+          <div class="smile"></div>
+        </div>
+        <div class="body">
+          <div class="arm left"></div>
+          <div class="arm right"></div>
+          <div class="leg left"><div class="shoe left"></div></div>
+          <div class="leg right"><div class="shoe right"></div></div>
+        </div>
+      </div>`;
+    }
+
+    function showIntro(){
+      app(`
+        ${hud()}
+        <div class="scene">
+          <div class="panel dialog">
+            從前有一位可愛的小朋友，想去尋找一杯<strong>健康又好喝的牛奶</strong>。<br>
+            他站在大地圖前，準備展開牛奶大冒險！
+            <div class="subtext">跟著他一起從畜牧場出發，經過擠乳、加工，再到超市選出正確的鮮乳吧！</div>
+            <div class="btns">
+              <button onclick="showMap()">開始冒險</button>
+            </div>
+          </div>
+          <div class="map-wrap">
+            <div class="path"></div>
+            ${kidFigure()}
+            <div class="station farm">
+              <div class="icon">🐄</div>
+              <button onclick="showFarm()">第一站：畜牧場</button>
+            </div>
+            <div class="station milkzone locked">
+              <div class="icon">🤖</div>
+              <button disabled>第二站：擠乳機器區</button>
+            </div>
+            <div class="station factory locked">
+              <div class="icon">🏭</div>
+              <button disabled>第三站：加工廠</button>
+            </div>
+            <div class="station market locked">
+              <div class="icon">🛒</div>
+              <button disabled>第四站：超市</button>
+            </div>
+          </div>
+          <div class="ground-strip"></div>
+        </div>
+      `);
+    }
+
+    function showMap(){
+      const milkzoneLocked = !state.completed.farm;
+      const factoryLocked = !state.completed.milkzone;
+      const marketLocked = !state.completed.factory;
+
+      app(`
+        ${hud()}
+        <div class="scene">
+          <div class="panel dialog">
+            小朋友站在大地圖前，要一路追著牛奶前進！<br>
+            現在該去哪一站呢？
+            <div class="subtext">
+              先從畜牧場開始，完成任務後會逐步解鎖下一站。
+            </div>
+          </div>
+          <div class="map-wrap">
+            <div class="path"></div>
+            ${kidFigure()}
+            <div class="station farm">
+              <div class="icon">🐄</div>
+              <button onclick="showFarm()">${state.completed.farm ? '回看：畜牧場' : '前往：畜牧場'}</button>
+            </div>
+            <div class="station milkzone ${milkzoneLocked ? 'locked' : ''}">
+              <div class="icon">🤖</div>
+              <button ${milkzoneLocked ? 'disabled' : 'onclick="showMilkingZone()"'}>${milkzoneLocked ? '尚未解鎖' : '前往：擠乳機器區'}</button>
+            </div>
+            <div class="station factory ${factoryLocked ? 'locked' : ''}">
+              <div class="icon">🏭</div>
+              <button ${factoryLocked ? 'disabled' : 'onclick="showFactory()"'}>${factoryLocked ? '尚未解鎖' : '前往：加工廠'}</button>
+            </div>
+            <div class="station market ${marketLocked ? 'locked' : ''}">
+              <div class="icon">🛒</div>
+              <button ${marketLocked ? 'disabled' : 'onclick="showMarket()"'}>${marketLocked ? '尚未解鎖' : '前往：超市'}</button>
+            </div>
+          </div>
+          <div class="ground-strip"></div>
+        </div>
+      `);
+    }
+
+    function showFarm(){
+      app(`
+        ${hud()}
+        <div class="scene">
+          <div class="scene-grid">
+            <div class="panel illustration">
+              <div class="speech">
+                牛媽媽說：<br>
+                「我現在不想擠乳唷！如果你能回答正確問題，我就告訴你<strong>鮮乳</strong>在哪裡！」
+              </div>
+              <div class="sun"></div>
+              <div class="barn">
+                <div class="barn-door"></div>
+              </div>
+              <div class="cow" style="left:260px;bottom:95px;">
+                <div class="head"><div class="ear l"></div><div class="ear r"></div><div class="nose"></div></div>
+                <div class="body"></div><div class="spot a"></div><div class="spot b"></div>
+                <div class="leg l1"></div><div class="leg l2"></div><div class="leg r1"></div><div class="leg r2"></div><div class="tail"></div>
+              </div>
+              <div class="cow" style="left:410px;bottom:85px;transform:scale(.9)">
+                <div class="head"><div class="ear l"></div><div class="ear r"></div><div class="nose"></div></div>
+                <div class="body"></div><div class="spot a"></div><div class="spot b"></div>
+                <div class="leg l1"></div><div class="leg l2"></div><div class="leg r1"></div><div class="leg r2"></div><div class="tail"></div>
+              </div>
+              <div class="cow" style="left:548px;bottom:100px;transform:scale(.82)">
+                <div class="head"><div class="ear l"></div><div class="ear r"></div><div class="nose"></div></div>
+                <div class="body"></div><div class="spot a"></div><div class="spot b"></div>
+                <div class="leg l1"></div><div class="leg l2"></div><div class="leg r1"></div><div class="leg r2"></div><div class="tail"></div>
+              </div>
+            </div>
+            <div class="panel quiz-card">
+              <h2>第 1 關：牧場裡的第一滴牛奶</h2>
+              <p>小朋友說：<br>「擠乳機器人！是會幫忙擠乳的機器人嗎？我想回答問題後去看看！」</p>
+              <p><strong>Q：</strong>牛奶冒險開始了！一杯健康又好喝的牛奶，第一步最重要的是什麼呢？</p>
+              <div class="answers">
+                <button class="answer" onclick="farmAnswer(false)">A. 牧場要有很多遊客</button>
+                <button class="answer" onclick="farmAnswer(true)">B. 奶牛要健康，牧場也要乾淨又通風</button>
+                <button class="answer" onclick="farmAnswer(false)">C. 牛奶桶越大越好</button>
+              </div>
+              <div id="farmFeedback" class="feedback"></div>
+              <div id="farmNext" class="btns"></div>
+            </div>
+          </div>
+          <div class="ground-strip"></div>
+        </div>
+      `);
+    }
+
+    function farmAnswer(correct){
+      const fb = document.getElementById('farmFeedback');
+      const next = document.getElementById('farmNext');
+      if(correct){
+        state.completed.farm = true;
+        fb.className = 'feedback ok';
+        fb.innerHTML = '答對了！牛媽媽告訴你：擠乳機器人就在牧場內的「擠乳機器區」！';
+        next.innerHTML = `<button onclick="showMap()">回到大地圖</button>`;
+      }else{
+        fb.className = 'feedback bad';
+        fb.innerHTML = '再想想看！健康好喝的牛奶，最重要的是健康的奶牛和舒適的牧場。';
+      }
+    }
+
+    function showMilkingZone(){
+      if(!state.completed.farm){ showMap(); return; }
+
+      app(`
+        ${hud()}
+        <div class="scene">
+          <div class="scene-grid">
+            <div class="panel milking-yard">
+              <div class="speech">
+                牛媽媽說：<br>
+                「當我不舒服、想擠奶時，就可以進去擠乳。<br>
+                不想的時候，也不會被強迫擠乳喔！」
+              </div>
+              <div class="queue-line"></div>
+              <div class="moving-cow cow">
+                <div class="head"><div class="ear l"></div><div class="ear r"></div><div class="nose"></div></div>
+                <div class="body"></div><div class="spot a"></div><div class="spot b"></div>
+                <div class="leg l1"></div><div class="leg l2"></div><div class="leg r1"></div><div class="leg r2"></div><div class="tail"></div>
+              </div>
+              <div class="moving-cow cow delay1">
+                <div class="head"><div class="ear l"></div><div class="ear r"></div><div class="nose"></div></div>
+                <div class="body"></div><div class="spot a"></div><div class="spot b"></div>
+                <div class="leg l1"></div><div class="leg l2"></div><div class="leg r1"></div><div class="leg r2"></div><div class="tail"></div>
+              </div>
+              <div class="moving-cow cow delay2">
+                <div class="head"><div class="ear l"></div><div class="ear r"></div><div class="nose"></div></div>
+                <div class="body"></div><div class="spot a"></div><div class="spot b"></div>
+                <div class="leg l1"></div><div class="leg l2"></div><div class="leg r1"></div><div class="leg r2"></div><div class="tail"></div>
+              </div>
+              <div class="moving-cow cow delay3">
+                <div class="head"><div class="ear l"></div><div class="ear r"></div><div class="nose"></div></div>
+                <div class="body"></div><div class="spot a"></div><div class="spot b"></div>
+                <div class="leg l1"></div><div class="leg l2"></div><div class="leg r1"></div><div class="leg r2"></div><div class="tail"></div>
+              </div>
+
+              <div class="robot">
+                <div class="screen">🤖</div>
+                <div class="arm"></div>
+                <div class="tube"></div>
+                <div class="door"></div>
+                <div class="bucket"></div>
+              </div>
+
+              <div class="truck">
+                <div class="cab"></div>
+                <div class="box"><span class="truck-label">鮮乳出發！</span></div>
+                <div class="wheel w1"></div>
+                <div class="wheel w2"></div>
+              </div>
+            </div>
+
+            <div class="panel quiz-card">
+              <h2>第二站：牧場內的擠乳機器區</h2>
+              <p>排隊的乳牛依序走進擠乳機器，牛奶被收集起來後，就要前往加工廠囉！</p>
+              <p>小朋友驚呼：<br><strong>「哇！機器真的會幫忙擠乳耶！」</strong></p>
+              <p><strong>Q：</strong>看到鮮奶車出發後，小朋友下一步應該去哪裡呢？</p>
+              <div class="answers">
+                <button class="answer" onclick="milkingAnswer(false)">A. 回家睡覺</button>
+                <button class="answer" onclick="milkingAnswer(true)">B. 回到大地圖，再前往加工廠</button>
+                <button class="answer" onclick="milkingAnswer(false)">C. 直接留在牧場玩耍</button>
+              </div>
+              <div id="milkingFeedback" class="feedback"></div>
+              <div id="milkingNext" class="btns"></div>
+            </div>
+          </div>
+          <div class="ground-strip"></div>
+        </div>
+      `);
+    }
+
+    function milkingAnswer(correct){
+      const fb = document.getElementById('milkingFeedback');
+      const next = document.getElementById('milkingNext');
+      if(correct){
+        state.completed.milkzone = true;
+        fb.className = 'feedback ok';
+        fb.innerHTML = '答對了！鮮奶車已經往加工廠前進，小朋友也該回到大地圖，前往下一站。';
+        next.innerHTML = `<button onclick="showMap()">回到大地圖</button>`;
+      }else{
+        fb.className = 'feedback bad';
+        fb.innerHTML = '再想一想！鮮奶車已經出發了，下一步應該是回到大地圖，再前往加工廠。';
+      }
+    }
+
+    function showFactory(){
+      if(!state.completed.milkzone){ showMap(); return; }
+      app(`
+        ${hud()}
+        <div class="scene">
+          <div class="panel dialog">
+            小朋友來到加工廠門口，看到五台飲品車準備出發！<br>
+            他要追哪一台，才會找到真正想要的那瓶牛奶呢？
+          </div>
+          <div class="panel">
+            <h2>第 3 關：加工廠追車任務</h2>
+            <p style="font-size:18px;line-height:1.7;margin:0 0 12px;">
+              到了加工廠，出現五台裝載冷凍飲品車：<strong>調味乳、豆乳、鮮乳、乳飲品、牛乳</strong>。<br>
+              請問小朋友應該追上哪台車呢？
+            </p>
+            <div class="truck-grid">
+              ${factoryTruck('調味乳', false)}
+              ${factoryTruck('豆乳', false)}
+              ${factoryTruck('鮮乳', true)}
+              ${factoryTruck('乳飲品', false)}
+              ${factoryTruck('牛乳', false)}
+            </div>
+            <div id="factoryFeedback" class="feedback"></div>
+            <div id="factoryNext" class="btns"></div>
+          </div>
+          <div class="ground-strip"></div>
+        </div>
+      `);
+    }
+
+    function factoryTruck(label, correct){
+      return `
+        <div class="drink-truck">
+          <div class="truck-icon">
+            <div class="truck-body">${label}</div>
+            <div class="truck-front"></div>
+            <div class="truck-wheel left"></div>
+            <div class="truck-wheel right"></div>
+          </div>
+          <button onclick="factoryAnswer(${correct})">選這台</button>
+        </div>
+      `;
+    }
+
+    function factoryAnswer(correct){
+      const fb = document.getElementById('factoryFeedback');
+      const next = document.getElementById('factoryNext');
+      if(correct){
+        state.completed.factory = true;
+        fb.className = 'feedback ok';
+        fb.innerHTML = '答對了！小朋友追上了「鮮乳」車，接下來可以回到大地圖，前往超市挑選正確的鮮乳。';
+        next.innerHTML = `<button onclick="showMap()">回到大地圖</button>`;
+      }else{
+        fb.className = 'feedback bad';
+        fb.innerHTML = '這台不是正確答案喔！請再找找看，應該追上的是「鮮乳」車。';
+      }
+    }
+
+    function showMarket(){
+      if(!state.completed.factory){ showMap(); return; }
+      app(`
+        ${hud()}
+        <div class="scene">
+          <div class="scene-grid">
+            <div class="panel market-scene">
+              <div class="store-sign">超 市</div>
+              <div class="shelf"></div>
+              <div class="worker">
+                <div class="cap"></div>
+                <div class="head"></div>
+                <div class="body"></div>
+                <div class="arm l"></div><div class="arm r"></div>
+                <div class="leg l"></div><div class="leg r"></div>
+              </div>
+              <div class="bottle-row">
+                <div class="milk-bottle" onclick="marketAnswer(true)">
+                  <div class="bottle-shape">
+                    <div class="label fat">全脂鮮乳</div>
+                  </div>
+                  <div style="text-align:center;font-weight:900;margin-top:10px;">全脂鮮乳</div>
+                </div>
+                <div class="milk-bottle" onclick="marketAnswer(false)">
+                  <div class="bottle-shape">
+                    <div class="label lowfat">低脂鮮乳</div>
+                  </div>
+                  <div style="text-align:center;font-weight:900;margin-top:10px;">低脂鮮乳</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel quiz-card">
+              <h2>第 4 關：超市選鮮乳</h2>
+              <p>小朋友來到超市，看到工作人員把鮮奶放上架。</p>
+              <p>架上有兩瓶：<strong>全脂鮮乳</strong> 和 <strong>低脂鮮乳</strong>。</p>
+              <p><strong>Q：</strong>請問小朋友應該選取哪一瓶呢？</p>
+              <div id="marketFeedback" class="feedback"></div>
+              <div id="marketNext" class="btns"></div>
+            </div>
+          </div>
+          <div class="ground-strip"></div>
+        </div>
+      `);
+    }
+
+    function marketAnswer(correct){
+      const fb = document.getElementById('marketFeedback');
+      const next = document.getElementById('marketNext');
+      if(correct){
+        state.completed.market = true;
+        fb.className = 'feedback ok';
+        fb.innerHTML = '答對了！小朋友拿到了想要的「全脂鮮乳」！';
+        next.innerHTML = `<button onclick="showEnding()">完成冒險</button>`;
+      }else{
+        fb.className = 'feedback bad';
+        fb.innerHTML = '再想一想！這一關的正確答案是「全脂鮮乳」。';
+      }
+    }
+
+    function showEnding(){
+      app(`
+        ${hud()}
+        <div class="scene">
+          <div class="panel dialog" style="max-width:880px;">
+            <div style="font-size:34px;">🎉 恭喜過關！ 🎉</div>
+            小朋友終於拿到一瓶想要的<strong>鮮乳</strong>啦！<br>
+            他知道了牛奶要先從舒適的牧場開始，接著經過擠乳、加工，最後再到超市正確挑選。
+            <div class="stars">⭐ ⭐ ⭐ ⭐ ⭐</div>
+            <div class="subtext">你也完成了牛奶冒險，成功找到營養滿分的鮮乳！</div>
+          </div>
+
+          <div class="panel" style="max-width:900px;margin:18px auto 0;text-align:center;">
+            <h2>本次學到的重點</h2>
+            <p style="font-size:18px;line-height:1.8;margin:0;">
+              1. 第一滴好牛奶，從<strong>健康的奶牛</strong>與<strong>舒適的牧場</strong>開始。<br>
+              2. 牛奶會經過<strong>擠乳與加工</strong>流程。<br>
+              3. 到超市時，要選出正確的<strong>鮮乳</strong>，這次冒險的答案是<strong>全脂鮮乳</strong>。
+            </p>
+            <div class="btns" style="margin-top:18px;">
+              <button onclick="showMap()">再玩一次地圖模式</button>
+              <button class="ghost-btn" onclick="restartGame()">重新開始全部關卡</button>
+            </div>
+          </div>
+          <div class="ground-strip"></div>
+        </div>
+      `);
+    }
+
+    function restartGame(){
+      state.completed = { farm:false, milkzone:false, factory:false, market:false };
+      showIntro();
+    }
+
+    showIntro();
+  </script>
+</body>
+</html>
